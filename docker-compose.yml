@@ -1,0 +1,39 @@
+version: '3'
+services:
+  mysql:
+    image: mysql:5.7
+    environment:
+      - MYSQL_ALLOW_EMPTY_PASSWORD=true
+    volumes:
+      - ./tmp/mysql:/var/lib/mysql
+    ports:
+      - "3311:3306"
+  redis:
+    image: 'redis:4.0-alpine'
+    command: redis-server
+    volumes:
+      - ./tmp/redis:/data
+  sidekiq:
+    build: ./src
+    command: bundle exec sidekiq
+    environment:
+      - RAILS_ENV=development
+      - REDIS_HOST=redis
+    volumes:
+      - ./src:/app
+    depends_on:
+      - mysql
+      - redis
+  web:
+    build: ./src
+    command: bundle exec rails s -p 3000 -b '0.0.0.0'
+    environment:
+      - RAILS_ENV=development
+      - REDIS_HOST=redis
+    volumes:
+      - ./src:/app
+    ports:
+      - "3000:3000"
+    depends_on:
+      - mysql
+      - redis
